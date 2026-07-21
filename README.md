@@ -208,3 +208,13 @@ If you want to continue working on this demo, here are some ideas for the next s
 3. Experiment with different models and see how they affect the search results.
 4. Consider fine-tuning CLIP model on a food-specific dataset to see how it may improve
    the search quality.
+
+## Deploy on Render
+
+Single Docker service (FastAPI + CLIP + built frontend → Qdrant Cloud). A
+`render.yaml` blueprint is included.
+
+1. On Render: **New → Blueprint**, connect this repo (detects the Dockerfile).
+2. Set env vars: `QDRANT_URL`, `QDRANT_API_KEY`. `QDRANT_COLLECTION` defaults to
+   `products` (already loaded on the cluster).
+3. Use an instance with **≥ 2 GB RAM** — CLIP (~600 MB) will not fit the free tier.
