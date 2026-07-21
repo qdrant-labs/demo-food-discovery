@@ -9,4 +9,4 @@ services:
       - key: QDRANT_API_KEY
         sync: false
       - key: QDRANT_COLLECTION
-        value: products
+        sync: false
