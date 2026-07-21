@@ -1,11 +1,19 @@
+import { useState } from "react";
+
 function FoodCard({ food, onReaction }) {
   const rating = food.restaurant?.rating;
+  const [imageOk, setImageOk] = useState(Boolean(food.image_url));
 
   return (
     <article className="food-card">
       <div className="food-image">
-        {food.image_url ? (
-          <img src={food.image_url} alt={food.name} loading="lazy" />
+        {imageOk ? (
+          <img
+            src={food.image_url}
+            alt={food.name}
+            loading="lazy"
+            onError={() => setImageOk(false)}
+          />
         ) : (
           <span>🍽️</span>
         )}
