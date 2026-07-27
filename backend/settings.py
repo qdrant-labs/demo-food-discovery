@@ -42,3 +42,7 @@ QDRANT_COLLECTION = os.environ.get("QDRANT_COLLECTION", "wolt-clip-ViT-B-32")
 MAX_SEARCH_LIMIT = 100
 DEFAULT_LIMIT = 12
 GROUP_BY_FIELD = "cafe.slug"
+
+# The Wolt dataset is multilingual; bias results toward English dish text.
+# Best-effort (no language field in the data), toggle off with FILTER_ENGLISH=0.
+FILTER_ENGLISH = os.environ.get("FILTER_ENGLISH", "true").lower() in ("1", "true", "yes")

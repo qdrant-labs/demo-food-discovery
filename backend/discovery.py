@@ -10,6 +10,30 @@ from models import SearchQuery, Product
 
 logger = logging.getLogger(__name__)
 
+# Over-fetch this many groups per requested result when filtering for English,
+# since English is a minority of the multilingual dataset.
+ENGLISH_OVERFETCH = 12
+MAX_OVERFETCH = 200
+
+# Fast, dependency-free English heuristic: exclude Nordic characters and require
+# a common English word. Best-effort (there is no language field in the data).
+_EN_WORDS = {
+    "the", "and", "with", "of", "a", "in", "on", "for", "served", "fresh",
+    "house", "sauce", "topped", "choice", "your", "our", "from", "or", "to",
+    "chicken", "cheese", "rice", "salad", "bowl", "fried", "grilled", "spicy",
+    "sweet", "beef", "mix", "set", "pork", "fish", "egg", "soup", "roll",
+}
+
+
+def _looks_english(name, desc):
+    text = (desc if len(desc or "") > len(name or "") else name) or ""
+    t = text.lower()
+    if len(t) < 3:
+        return False
+    if any(ch in t for ch in "åäöøæ"):
+        return False
+    return len(set(t.replace(",", " ").split()) & _EN_WORDS) >= 1
+
 
 class DiscoveryStrategy:
     """
@@ -56,16 +80,25 @@ class DiscoveryStrategy:
         )
 
     def _grouped(self, query, search_query: SearchQuery):
+        want = search_query.limit
+        fetch = min(want * ENGLISH_OVERFETCH, MAX_OVERFETCH) if settings.FILTER_ENGLISH else want
         response = self.qdrant_client.query_points_groups(
             collection_name=settings.QDRANT_COLLECTION,
             query=query,
             group_by=settings.GROUP_BY_FIELD,
             query_filter=self._location_filter(search_query.location),
-            limit=search_query.limit,
+            limit=fetch,
             group_size=1,
             with_payload=True,
         )
-        return list(itertools.chain.from_iterable(group.hits for group in response.groups))
+        hits = list(itertools.chain.from_iterable(group.hits for group in response.groups))
+
+        if settings.FILTER_ENGLISH:
+            english = [h for h in hits if _looks_english(h.payload.get("name"), h.payload.get("description"))]
+            # Fall back to unfiltered results if nothing matched (keeps the grid full).
+            hits = english or hits
+
+        return hits[:want]
 
     def _random(self, search_query: SearchQuery):
         return self._grouped(models.SampleQuery(sample=models.Sample.RANDOM), search_query)
