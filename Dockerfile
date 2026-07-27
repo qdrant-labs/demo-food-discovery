@@ -37,7 +37,7 @@ COPY --from=build-step /app/build /app/build
 
 RUN poetry install --no-interaction --no-ansi --no-root --without dev
 
-RUN python -c 'from sentence_transformers import SentenceTransformer; SentenceTransformer("clip-ViT-B-32", cache_folder="./models_cache")'
+RUN python -c 'from fastembed import TextEmbedding; TextEmbedding("Qdrant/clip-ViT-B-32-text")'
 
 # Finally copy the application source code and install root
 COPY backend /app

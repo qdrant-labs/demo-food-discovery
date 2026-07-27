@@ -2,11 +2,12 @@ import os
 import logging
 from typing import List
 
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
-from sentence_transformers import SentenceTransformer
 from starlette.middleware.cors import CORSMiddleware
 
 from discovery import DiscoveryStrategy
@@ -15,6 +16,25 @@ from models import SearchQuery, Product
 import settings
 
 logger = logging.getLogger(__name__)
+
+# CLIP text encoder (fastembed). The same CLIP ViT-B/32 model the collection's
+# image vectors were built with, so text queries land in the same space.
+CLIP_TEXT_MODEL = "Qdrant/clip-ViT-B-32-text"
+_FASTEMBED_PATH = os.environ.get("FASTEMBED_MODEL_PATH") or None
+
+
+class ClipTextEncoder:
+    def __init__(self):
+        if _FASTEMBED_PATH:
+            self._model = TextEmbedding(CLIP_TEXT_MODEL, specific_model_path=_FASTEMBED_PATH)
+        else:
+            self._model = TextEmbedding(CLIP_TEXT_MODEL)
+
+    def encode(self, texts):
+        texts = list(texts)
+        if not texts:
+            return np.zeros((0, 512))
+        return np.array(list(self._model.embed(texts)))
 
 
 # Create a FastAPI app
@@ -33,10 +53,8 @@ client = QdrantClient(
     api_key=settings.QDRANT_API_KEY,
 )
 
-# Load the embeddings model (CLIP; must match the collection's image vectors)
-model = SentenceTransformer(
-    "clip-ViT-B-32", device="cpu", cache_folder="./models_cache"
-)
+# Load the CLIP text encoder once at startup
+model = ClipTextEncoder()
 
 
 @app.post("/api/search")

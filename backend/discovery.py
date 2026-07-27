@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 from qdrant_client import QdrantClient, models
-from sentence_transformers import SentenceTransformer
 
 import settings
 from models import SearchQuery, Product
@@ -24,7 +23,8 @@ class DiscoveryStrategy:
     different place. Uses the current Qdrant query API (`query_points_groups`).
     """
 
-    def __init__(self, embedding_model: SentenceTransformer, qdrant_client: QdrantClient):
+    def __init__(self, embedding_model, qdrant_client: QdrantClient):
+        # embedding_model.encode(list[str]) -> np.ndarray of CLIP text vectors
         self.embedding_model = embedding_model
         self.qdrant_client = qdrant_client
 
