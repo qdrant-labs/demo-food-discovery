@@ -1,220 +1,91 @@
 # Food Discovery with Qdrant
 
-## Online version <a href="https://replit.com/@qdrant/food-discovery-ai"><img align="right" src="https://replit.com/badge/github/qdrant/demo-food-discovery" alt="Run on Repl.it"></a>
+Search for dishes by **discovery** instead of typing a query: you're shown a grid
+of dishes and you **like** or **skip** them, and the results adapt to your taste.
+You can also start from a **text query** ("sushi", "vegan salad"). It's a more
+natural way to search when you're hungry but don't know exactly what you want.
 
-If you want to start with having a look at a running application, it is available here:
-**[https://food-discovery.qdrant.tech/](https://food-discovery.qdrant.tech/)**
+The demo runs on the [Wolt](https://wolt.com/) dataset — ~1.7M dish photos from
+restaurants, each embedded with **CLIP** so search works on how the food *looks*.
 
-## Description
+## What's inside
 
-This is a demo project for the [Qdrant](https://qdrant.tech) vector search engine. It 
-allows searching for dishes based on their photos. The search is, however, not based on
-queries, but on a discovery. The user is presented with a set of images and asked to 
-select the ones that they like or not. That's a different paradigm of search, which 
-might be more natural for humans in some specific cases, like food. **If you are hungry, 
-you might not know precisely what you want, but want to see some options and explore 
-them to find something interesting.**
+| | |
+|-|-|
+| Qdrant | Vector database storing the CLIP image embeddings; powers likes/skips via the Recommendation API. |
+| CLIP `ViT-B/32` | Image + text share one embedding space, so a text query finds matching photos. |
+| FastEmbed | Encodes the text query with `Qdrant/clip-ViT-B-32-text` (same space as the image vectors). |
+| React (Vite) | The frontend, styled with the Qdrant design system. |
+| FastAPI | Backend exposing `POST /api/search`. |
 
-The demo is based on the [Wolt](https://wolt.com/) dataset of dishes. It contains 
-over 2M images of dishes from different restaurants. The images are vectorized with
-the [CLIP](https://openai.com/blog/clip/) model and indexed in Qdrant. For the 
-simplicity, we use the `clip-ViT-B-32` model available in the 
-[Sentence-Transformers](https://www.sbert.net/examples/applications/image-search/README.html)
-library.
+## How it works
 
-The demo uses the [FastAPI](https://fastapi.tiangolo.com/) framework for the backend and 
-[React](https://reactjs.org/) for the frontend, with [Tabler](https://tabler.io/)
-web application UI kit. Qdrant [Recommendation API](
-https://qdrant.tech/documentation/concepts/search/#recommendation-api) 
-is used internally to find some other items that are visually similar to the liked ones 
-and dissimilar to the disliked ones. All the components are enclosed in Docker Compose
-and can be run with a single command.
+Each dish is a point in Qdrant with a 512-d CLIP image vector and payload
+(`name`, `description`, `image`, `cafe`). A search sends liked/disliked dish ids
+and/or text queries; the backend encodes text with CLIP and calls Qdrant's
+grouped recommendation (`query_points_groups`), returning one dish per restaurant
+(`cafe.slug`). Only text queries are vectorized at search time — the image
+vectors are reused — so search stays fast.
 
-On top of the positive and negative examples based search, you can also use a text query
-to filter the results based on the names of the dishes. The text query is vectorized
-with the same CLIP model and used in semantic search.
+## Data
 
-Proposed mechanism is embedding-agnostic, so it can be used with any multimodal embeddings
-model. We only vectorize text queries during the search, but mostly use the same image 
-embeddings that were used during the indexing. Thus, there might no vectorization overhead 
-during the search, what makes it very fast.
+The collection (`wolt-clip-ViT-B-32`, 512-d, unnamed vectors) is restored from a
+Qdrant snapshot straight into your cluster — no local processing needed:
 
-## Architecture
-
-![Architecture diagram](images/architecture-diagram.png)
-
-The demo consists of the following components:
-- [React frontend](/frontend) - a web application that allows the user to interact with the demo
-- [FastAPI backend](/backend) - a backend that communicates with Qdrant and exposes a REST API
-- [Qdrant](https://qdrant.tech/) - a vector search engine that stores the data and performs the search
-
-All the components come pre-configured and can be run with a single command. The 
-[uvicorn](https://www.uvicorn.org/) webserver handles the communication between the
-user and the application.
-
-## Usage
-
-If you want to set up the demo locally, you need to have [Docker](https://www.docker.com/)
-and [Docker Compose](https://docs.docker.com/compose/) installed. Then, you can follow 
-the instructions below.
-
-### Running the demo
-
-In order to set up the demo, you need to have a running Qdrant server. You can either
-run it locally or use a [Qdrant Cloud](https://cloud.qdrant.io/) instance. There is a
-small difference in how you need to configure the demo in these two cases.
-
-#### Qdrant Cloud instance
-
-If you prefer to use a Qdrant Cloud instance, please create a cluster and API key in
-the [Qdrant Cloud Console](https://cloud.qdrant.io). Then, create a `.env` file using
-the template provided in the `.env.example` file and set the following variables:
-
-```dotenv
-QDRANT_URL=<< QDRANT_URL >>
-QDRANT_API_KEY=<< QDRANT_API_KEY >>
-QDRANT_COLLECTION=wolt-clip-ViT-B-32
+```python
+from qdrant_client import QdrantClient
+client = QdrantClient(url="https://<your-cluster>:6333", api_key="<key>")
+client.recover_snapshot(
+    "wolt-clip-ViT-B-32",
+    location="https://snapshots.qdrant.io/wolt-clip-2108082541245612-2026-06-04-09-56-17.snapshot",
+)
+# grouping needs a keyword index on the group field:
+from qdrant_client import models
+client.create_payload_index("wolt-clip-ViT-B-32", "cafe.slug", models.PayloadSchemaType.KEYWORD)
 ```
 
-`QDRANT_URL` should include the protocol and the port, e.g. 
-`https://MY_CLUSTER.eu-central-1-0.aws.cloud.qdrant.io:6333`.
+(To rebuild embeddings from raw images instead, see [`processing/`](/processing).)
 
-You can adjust the collection name, but make sure that to use the same name for all
-the other steps. Once configured, you can launch the project with Docker Compose:
+## Run locally
+
+**Backend**
 
 ```bash
-docker-compose up -d
+pip install "fastapi" "uvicorn" "qdrant-client[fastembed]"
+
+export QDRANT_URL="https://<your-cluster>:6333"
+export QDRANT_API_KEY="<your-key>"
+export QDRANT_COLLECTION="wolt-clip-ViT-B-32"
+
+uvicorn main:app --host 0.0.0.0 --port 8000   # from the backend/ directory
 ```
 
-#### Local Qdrant instance
-
-If you decided to run Qdrant locally, you can start with configuring the `.env` file, 
-based on the provided `.env.example` template. Here is how it should look like:
-
-```dotenv
-QDRANT_URL=http://qdrant:6333
-QDRANT_COLLECTION=wolt-clip-ViT-B-32
-```
-
-Then, you can launch the project with Docker Compose:
+**Frontend** (another terminal)
 
 ```bash
-docker-compose --profile local up -d
+cd frontend
+npm install
+npm run dev
 ```
 
-### Loading the data
+Set `VITE_API_BASE` to the backend URL if it's on a different host.
 
-At this point, you should have a running demo. However, it does not contain any data,
-but the web application is already available at http://localhost:8001. You can open it
-in your browser.
+## Configuration
 
-![Empty demo](images/empty-demo.png)
+| Variable | Default | |
+|-|-|-|
+| `QDRANT_URL` | `http://localhost:6333` | Qdrant endpoint |
+| `QDRANT_API_KEY` | — | Qdrant Cloud key |
+| `QDRANT_COLLECTION` | `wolt-clip-ViT-B-32` | collection to search |
+| `FILTER_ENGLISH` | `true` | bias results toward English dish text (the Wolt data is multilingual); set `0` for the full catalog |
 
-Each point in the collection represents a dish with a single image. The image is
-represented as a vector of 512 float numbers. There is also a JSON payload attached to
-each point, which looks similar to this:
+## Deploy
 
-```json
-{
-    "cafe": {
-        "address": "VGX7+6R2 Vecchia Napoli, Valletta",
-        "categories": ["italian", "pasta", "pizza", "burgers", "mediterranean"],
-        "location": {"lat": 35.8980154, "lon": 14.5145106},
-        "menu_id": "610936a4ee8ea7a56f4a372a",
-        "name": "Vecchia Napoli Is-Suq Tal-Belt",
-        "rating": 9,
-        "slug": "vecchia-napoli-skyparks-suq-tal-belt"
-    },
-    "description": "Tomato sauce, mozzarella fior di latte, crispy guanciale, Pecorino Romano cheese and a hint of chilli",
-    "image": "https://wolt-menu-images-cdn.wolt.com/menu-images/610936a4ee8ea7a56f4a372a/005dfeb2-e734-11ec-b667-ced7a78a5abd_l_amatriciana_pizza_joel_gueller1.jpeg",
-    "name": "L'Amatriciana"
-}
-```
+Two services against Qdrant Cloud.
 
-We have exported the data from the Wolt dataset and prepared a snapshot that you can
-import into your Qdrant instance. 
+**Backend — Railway (or any Docker host).** Deploy this repo; the `Dockerfile`
+installs deps, bakes the CLIP text model, and runs FastAPI bound to `$PORT`. Set
+`QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION=wolt-clip-ViT-B-32`.
 
-#### Importing a snapshot
-
-Qdrant documentation describes how to import a snapshot into a Qdrant instance. We are
-going to [recover via API](https://qdrant.tech/documentation/concepts/snapshots/#recover-via-api).
-First of all, we need to download the snapshot from [GCP bucket](https://storage.googleapis.com/common-datasets-snapshots/wolt-clip-ViT-B-32.snapshot). 
-Let's assume it was downloaded to `/tmp/wolt-clip-ViT-B-32.snapshot`. You can use the 
-following command to import the snapshot:
-
-##### Local Qdrant instance
-
-If you are using a local Qdrant instance, you can import the snapshot with the following
-command. Please adjust the collection name if you want to use a different one.
-
-```bash
-curl -X POST \
-    -H 'Content-Type: multipart/form-data' \
-    -F 'snapshot=@/tmp/wolt-clip-ViT-B-32.snapshot' \
-    http://localhost:6333/collections/wolt-clip-ViT-B-32/snapshots/upload
-```
-
-A successful response should look like this:
-
-```json
-{
-    "result": true,
-    "status": "ok",
-    "time": 234.737387814
-}
-```
-
-##### Qdrant Cloud instance
-
-If you decided to use a Qdrant Cloud instance, you need to pass your API key. Other than 
-that, the request is the same as for the local Qdrant instance.
-
-```bash
-curl -X POST \
-    -H 'Content-Type: multipart/form-data' \
-    -F 'snapshot=@/tmp/wolt-clip-ViT-B-32.snapshot' \
-    -H "Api-key: << QDRANT_API_KEY >>" \
-    << QDRANT_URL >>/collections/wolt-clip-ViT-B-32/snapshots/upload
-```
-
-### Using the application
-
-Once your demo is up and running, you can open it in your browser at 
-http://localhost:8001 and finally start using it.
-
-![Working demo](images/working-demo.png)
-
-By clicking the buttons, you can navigate through the search results and explore your
-options by selecting the dishes you like and discarding the ones you don't.
-
-## Links
-
-Some of the links to the resources that were useful during the development:
-
-- https://www.erraticbits.ca/post/2021/fastapi/
-- https://tabler.io/docs/getting-started
-- https://qdrant.tech/documentation/concepts/snapshots/
-
-## Further steps
-
-If you want to continue working on this demo, here are some ideas for the next steps:
-
-1. Use some additional payload properties and allow filtering by them. It may require
-   setting up some [payload indexes](https://qdrant.tech/documentation/concepts/payload/#payload-indexing) 
-   and definitely some UI changes.
-2. Play with collection configuration to improve the search quality, reduce the latency,
-   and/or reduce the memory footprint, as described in the
-   [Optimize Qdrant tutorial](https://qdrant.tech/documentation/tutorials/optimize/#optimize-qdrant).
-3. Experiment with different models and see how they affect the search results.
-4. Consider fine-tuning CLIP model on a food-specific dataset to see how it may improve
-   the search quality.
-
-## Deploy on Render
-
-Single Docker service (FastAPI + CLIP + built frontend → Qdrant Cloud). A
-`render.yaml` blueprint is included.
-
-1. On Render: **New → Blueprint**, connect this repo (detects the Dockerfile).
-2. Set env vars: `QDRANT_URL`, `QDRANT_API_KEY`. `QDRANT_COLLECTION` defaults to
-   `products` (already loaded on the cluster).
-3. Use an instance with **≥ 2 GB RAM** — CLIP (~600 MB) will not fit the free tier.
+**Frontend — Vercel.** Import with **Root Directory = `frontend`** and set
+`VITE_API_BASE` to the backend URL. The resulting URL is the public demo.

@@ -29,7 +29,6 @@ RUN poetry config virtualenvs.create false
 
 # Use /app as the working directory
 WORKDIR /app
-RUN mkdir -p /app/models_cache && chmod 777 /app/models_cache
 
 # Copy poetry files & install the dependencies
 COPY backend/pyproject.toml /app

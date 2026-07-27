@@ -3,7 +3,6 @@ name = "food-discovery-backend"
 version = "1.0.0"
 description = ""
 authors = ["Kacper Łukawski <kacper.lukawski@qdrant.com>"]
-readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
