@@ -81,7 +81,9 @@ class DiscoveryStrategy:
 
     def _grouped(self, query, search_query: SearchQuery):
         want = search_query.limit
-        fetch = min(want * ENGLISH_OVERFETCH, MAX_OVERFETCH) if settings.FILTER_ENGLISH else want
+        # Over-fetch so English filtering and de-duplication still leave a full grid.
+        factor = ENGLISH_OVERFETCH if settings.FILTER_ENGLISH else 4
+        fetch = min(want * factor, MAX_OVERFETCH)
         response = self.qdrant_client.query_points_groups(
             collection_name=settings.QDRANT_COLLECTION,
             query=query,
@@ -98,7 +100,19 @@ class DiscoveryStrategy:
             # Fall back to unfiltered results if nothing matched (keeps the grid full).
             hits = english or hits
 
-        return hits[:want]
+        # Grouping by restaurant still lets chains show the same dish from each
+        # branch. De-duplicate by the visible identity (name + description).
+        seen = set()
+        deduped = []
+        for h in hits:
+            p = h.payload or {}
+            key = ((p.get("name") or "").strip().lower(), (p.get("description") or "").strip().lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(h)
+
+        return deduped[:want]
 
     def _random(self, search_query: SearchQuery):
         return self._grouped(models.SampleQuery(sample=models.Sample.RANDOM), search_query)
