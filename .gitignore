@@ -4,3 +4,6 @@
 *.iml
 *.snapshot
 *.tgz
+frontend/node_modules/
+frontend/dist/
+frontend/build/

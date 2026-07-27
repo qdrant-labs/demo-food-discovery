@@ -3,10 +3,11 @@
 // discovery: positive/negative example ids, optional text queries + location,
 // and a strategy ("best_score" | "average_vector").
 //
-// In dev with no backend, set VITE_MOCK=1 to render sample data so the UI can
-// be styled/previewed. In production the backend serves this frontend, so
-// /api/search is same-origin (no CORS, key stays server-side).
+// In dev with no backend, set VITE_MOCK=1 to render sample data. VITE_API_BASE
+// lets the UI live on a different host than the API (e.g. UI on Vercel, API on
+// Railway); empty by default -> same-origin (backend serves the frontend).
 const USE_MOCK = import.meta.env.VITE_MOCK === "1";
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
 
 export async function search({ positive = [], negative = [], queries = [], strategy = "best_score", location = null, limit = 12 } = {}) {
   if (USE_MOCK) return mockSearch({ positive, negative });
@@ -14,7 +15,7 @@ export async function search({ positive = [], negative = [], queries = [], strat
   const body = { positive, negative, queries, strategy, limit };
   if (location) body.location = location;
 
-  const res = await fetch("/api/search", {
+  const res = await fetch(`${API_BASE}/api/search`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
