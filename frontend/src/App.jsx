@@ -302,7 +302,11 @@ function App() {
             return (
               <div className="empty-state">
                 <div className="empty-state-header">
-                  <span>No dishes near {location.name}</span>
+                  <span>
+                    {location.name === "Near me"
+                      ? "No dishes near you"
+                      : `No dishes near ${location.name}`}
+                  </span>
                   <h3>Nothing within {location.radius_km} km</h3>
                   <p>
                     This demo's Wolt dataset only covers a handful of cities.
