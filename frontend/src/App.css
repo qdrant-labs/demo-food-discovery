@@ -586,19 +586,45 @@ button {
   background: var(--surface-hover);
 }
 
-.food-image {
-  width: 62px;
-  height: 62px;
+.food-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
 
   display: grid;
   place-items: center;
 
-  border-radius: 18px;
+  border-radius: 14px;
+  overflow: hidden;
   background: var(--accent-soft);
 }
 
-.food-image span {
-  font-size: 34px;
+.food-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.food-photo span {
+  font-size: 46px;
+}
+
+.food-score {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+
+  padding: 3px 9px;
+  border-radius: 999px;
+
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter: blur(6px);
+  color: var(--text);
+
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
 .food-card-body {
@@ -1286,3 +1312,71 @@ button {
   font-weight: 650;
 }
 .reset-button:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Removable liked / disliked chips (taste profile) */
+.taste-lists {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+}
+.taste-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.taste-row-label {
+  min-width: 58px;
+  padding-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.taste-row.liked .taste-row-label { color: var(--accent); }
+.taste-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.taste-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 4px;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+.taste-chip img { width: 22px; height: 22px; border-radius: 999px; object-fit: cover; }
+.taste-chip-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.taste-chip-remove {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1;
+}
+.taste-chip-remove:hover { background: var(--danger-soft); color: var(--danger); }
+
+/* Subtle feedback while re-searching — the grid stays mounted (no shake). */
+.is-loading { opacity: 0.6; transition: opacity 0.15s ease; }
+
+/* Liked / disliked state on cards + buttons */
+.food-card.is-liked { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.food-card.is-disliked { opacity: 0.6; }
+.like-button[aria-pressed="true"] { filter: brightness(0.92); }
+.dislike-button[aria-pressed="true"] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}

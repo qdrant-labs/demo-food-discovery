@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 import Header from "./components/Header";
+import SearchBar from "./components/SearchBar";
 import DiscoveryGrid from "./components/DiscoveryGrid";
 import LoadingState from "./components/LoadingState";
 import EmptyState from "./components/EmptyState";
@@ -12,22 +13,29 @@ import FoodDetailModal from "./components/FoodDetailModal";
 
 import { search } from "./lib/api";
 
+const EXAMPLES = ["sushi", "pizza", "vegan salad", "burger", "ramen", "dessert"];
+
 function App() {
   const [theme, setTheme] = useState("light");
+  const [query, setQuery] = useState("");
   const [foods, setFoods] = useState([]);
-  const [likedIds, setLikedIds] = useState([]);
-  const [dislikedIds, setDislikedIds] = useState([]);
+  // Keep the full items (not just ids) so likes/dislikes can be shown + removed.
+  const [likedItems, setLikedItems] = useState([]);
+  const [dislikedItems, setDislikedItems] = useState([]);
   const [newStrategy, setNewStrategy] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isHowOpen, setIsHowOpen] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
 
-  async function runSearch(liked, disliked, strategy) {
+  async function runSearch(liked, disliked, text, strategy) {
     setLoading(true);
+    setHasSearched(true);
     try {
       const results = await search({
-        positive: liked,
-        negative: disliked,
+        positive: liked.map((f) => f.id),
+        negative: disliked.map((f) => f.id),
+        queries: text && text.trim() ? [text.trim()] : [],
         strategy: strategy ? "best_score" : "average_vector",
       });
       setFoods(results);
@@ -39,35 +47,50 @@ function App() {
   }
 
   useEffect(() => {
-    runSearch([], [], newStrategy);
+    runSearch([], [], "", newStrategy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleReaction(food, reaction) {
-    const liked = likedIds.filter((id) => id !== food.id);
-    const disliked = dislikedIds.filter((id) => id !== food.id);
+  function handleReaction(food, reaction) {
+    const liked = likedItems.filter((f) => f.id !== food.id);
+    const disliked = dislikedItems.filter((f) => f.id !== food.id);
+    if (reaction === "like") liked.unshift(food);
+    if (reaction === "dislike") disliked.unshift(food);
+    setLikedItems(liked);
+    setDislikedItems(disliked);
+    runSearch(liked, disliked, query, newStrategy);
+  }
 
-    if (reaction === "like") liked.unshift(food.id);
-    if (reaction === "dislike") disliked.unshift(food.id);
+  // Remove a single liked/disliked dish from the taste profile.
+  function removeTaste(id) {
+    const liked = likedItems.filter((f) => f.id !== id);
+    const disliked = dislikedItems.filter((f) => f.id !== id);
+    setLikedItems(liked);
+    setDislikedItems(disliked);
+    runSearch(liked, disliked, query, newStrategy);
+  }
 
-    setLikedIds(liked);
-    setDislikedIds(disliked);
-    await runSearch(liked, disliked, newStrategy);
+  function onTextSearch(text = query) {
+    setQuery(text);
+    runSearch(likedItems, dislikedItems, text, newStrategy);
   }
 
   function toggleStrategy() {
     const next = !newStrategy;
     setNewStrategy(next);
-    runSearch(likedIds, dislikedIds, next);
+    runSearch(likedItems, dislikedItems, query, next);
   }
 
   function reset() {
-    setLikedIds([]);
-    setDislikedIds([]);
-    runSearch([], [], newStrategy);
+    setLikedItems([]);
+    setDislikedItems([]);
+    setQuery("");
+    runSearch([], [], "", newStrategy);
   }
 
-  const tasteCount = likedIds.length + dislikedIds.length;
+  const likedIds = likedItems.map((f) => f.id);
+  const dislikedIds = dislikedItems.map((f) => f.id);
+  const tasteCount = likedItems.length + dislikedItems.length;
 
   return (
     <main className={`app ${theme}`}>
@@ -84,9 +107,18 @@ function App() {
           <h1>Food Discovery</h1>
 
           <p>
-            Like the dishes you fancy and skip the ones you do not — Qdrant's
-            Discovery API refines recommendations from your taste in real time.
+            Search by craving, then like or dislike dishes — Qdrant's Discovery
+            API refines recommendations from your taste in real time.
           </p>
+
+          <SearchBar
+            query={query}
+            setQuery={setQuery}
+            onSearch={() => onTextSearch(query)}
+            onExampleSearch={onTextSearch}
+            loading={loading}
+            examples={EXAMPLES}
+          />
 
           <div className="discovery-controls">
             <label className="strategy-toggle">
@@ -98,32 +130,39 @@ function App() {
               <span>Best-score strategy</span>
             </label>
 
-            <div className="taste-summary">
-              <span className="taste-pill liked">{likedIds.length} liked</span>
-              <span className="taste-pill disliked">
-                {dislikedIds.length} skipped
-              </span>
-              {tasteCount > 0 && (
-                <button className="reset-button" onClick={reset}>
-                  Reset
-                </button>
+            {tasteCount > 0 && (
+              <button className="reset-button" onClick={reset}>
+                Reset taste
+              </button>
+            )}
+          </div>
+
+          {tasteCount > 0 && (
+            <div className="taste-lists">
+              {likedItems.length > 0 && (
+                <TasteRow label="Liked" tone="liked" items={likedItems} onRemove={removeTaste} />
+              )}
+              {dislikedItems.length > 0 && (
+                <TasteRow label="Disliked" tone="disliked" items={dislikedItems} onRemove={removeTaste} />
               )}
             </div>
-          </div>
+          )}
         </div>
 
-        {loading ? (
+        {foods.length > 0 ? (
+          <div className={loading ? "is-loading" : ""}>
+            <DiscoveryGrid
+              foods={foods}
+              likedIds={likedIds}
+              dislikedIds={dislikedIds}
+              onReaction={handleReaction}
+              onOpenDetail={setDetailFood}
+            />
+          </div>
+        ) : loading ? (
           <LoadingState />
-        ) : foods.length > 0 ? (
-          <DiscoveryGrid
-            foods={foods}
-            likedIds={likedIds}
-            dislikedIds={dislikedIds}
-            onReaction={handleReaction}
-            onOpenDetail={setDetailFood}
-          />
         ) : (
-          <EmptyState tasteCount={tasteCount} onReset={reset} />
+          hasSearched && <EmptyState tasteCount={tasteCount} onReset={reset} />
         )}
       </section>
 
@@ -139,6 +178,30 @@ function App() {
         />
       )}
     </main>
+  );
+}
+
+// Removable chips for the liked / disliked dishes.
+function TasteRow({ label, tone, items, onRemove }) {
+  return (
+    <div className={`taste-row ${tone}`}>
+      <span className="taste-row-label">{label}</span>
+      <div className="taste-chips">
+        {items.map((f) => (
+          <span key={f.id} className="taste-chip">
+            {f.image_url && <img src={f.image_url} alt="" />}
+            <span className="taste-chip-name">{f.name}</span>
+            <button
+              className="taste-chip-remove"
+              aria-label={`Remove ${f.name}`}
+              onClick={() => onRemove(f.id)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
