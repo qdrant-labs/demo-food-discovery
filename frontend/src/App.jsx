@@ -39,6 +39,8 @@ function App() {
   const [isHowOpen, setIsHowOpen] = useState(false);
   const [detailFood, setDetailFood] = useState(null);
   const [location, setLocation] = useState(null); // { name, latitude, longitude, radius_km } | null
+  const [locating, setLocating] = useState(false);
+  const [locationNote, setLocationNote] = useState("");
 
   async function runSearch(liked, disliked, text, strategy, loc = location) {
     setLoading(true);
@@ -87,6 +89,53 @@ function App() {
     const loc = { ...location, radius_km: km };
     setLocation(loc);
     runSearch(likedItems, dislikedItems, query, newStrategy, loc);
+  }
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      setLocationNote("Geolocation isn't available in this browser.");
+      return;
+    }
+    setLocating(true);
+    setLocationNote("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const loc = {
+          name: "Near me",
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          radius_km: location?.radius_km || 25,
+        };
+        setLocation(loc);
+        runSearch(likedItems, dislikedItems, query, newStrategy, loc);
+      },
+      () => {
+        setLocating(false);
+        setLocationNote("Couldn't get your location — allow access or pick a city.");
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  }
+
+  // Nearest covered city to a point (haversine), for the empty-results hint.
+  function nearestCity(lat, lon) {
+    const rad = (d) => (d * Math.PI) / 180;
+    let best = null;
+    let bestD = Infinity;
+    for (const c of CITIES) {
+      const dLat = rad(c.lat - lat);
+      const dLon = rad(c.lon - lon);
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(rad(lat)) * Math.cos(rad(c.lat)) * Math.sin(dLon / 2) ** 2;
+      const d = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return { city: best, km: Math.round(bestD) };
   }
 
   function handleReaction(food, reaction) {
@@ -168,6 +217,13 @@ function App() {
               >
                 Anywhere
               </button>
+              <button
+                className={location?.name === "Near me" ? "active" : ""}
+                onClick={useMyLocation}
+                disabled={locating}
+              >
+                {locating ? "Locating…" : "📍 Near me"}
+              </button>
               {CITIES.map((c) => (
                 <button
                   key={c.name}
@@ -192,6 +248,8 @@ function App() {
               </select>
             )}
           </div>
+
+          {locationNote && <p className="location-note">{locationNote}</p>}
 
           <div className="discovery-controls">
             <label className="strategy-toggle">
@@ -234,6 +292,29 @@ function App() {
           </div>
         ) : loading ? (
           <LoadingState />
+        ) : hasSearched && location ? (
+          (() => {
+            const near = nearestCity(location.latitude, location.longitude);
+            return (
+              <div className="empty-state">
+                <div className="empty-state-header">
+                  <span>No dishes near {location.name}</span>
+                  <h3>Nothing within {location.radius_km} km</h3>
+                  <p>
+                    This demo's Wolt dataset only covers a handful of cities.
+                    {near.city
+                      ? ` The closest to you is ${near.city.name} (~${near.km} km away).`
+                      : ""}
+                  </p>
+                </div>
+                {near.city && (
+                  <button className="compare-button" onClick={() => selectCity(near.city)}>
+                    Show {near.city.name} instead
+                  </button>
+                )}
+              </div>
+            );
+          })()
         ) : (
           hasSearched && <EmptyState tasteCount={tasteCount} onReset={reset} />
         )}
