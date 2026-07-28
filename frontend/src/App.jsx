@@ -8,6 +8,7 @@ import LoadingState from "./components/LoadingState";
 import EmptyState from "./components/EmptyState";
 import Footer from "./components/Footer";
 import HowItWorksModal from "./components/HowItWorksModal";
+import FoodDetailModal from "./components/FoodDetailModal";
 
 import { search } from "./lib/api";
 
@@ -19,6 +20,7 @@ function App() {
   const [newStrategy, setNewStrategy] = useState(true);
   const [loading, setLoading] = useState(false);
   const [isHowOpen, setIsHowOpen] = useState(false);
+  const [detailFood, setDetailFood] = useState(null);
 
   async function runSearch(liked, disliked, strategy) {
     setLoading(true);
@@ -118,6 +120,7 @@ function App() {
             likedIds={likedIds}
             dislikedIds={dislikedIds}
             onReaction={handleReaction}
+            onOpenDetail={setDetailFood}
           />
         ) : (
           <EmptyState tasteCount={tasteCount} onReset={reset} />
@@ -127,6 +130,14 @@ function App() {
       <Footer theme={theme} />
 
       {isHowOpen && <HowItWorksModal onClose={() => setIsHowOpen(false)} />}
+
+      {detailFood && (
+        <FoodDetailModal
+          food={detailFood}
+          onClose={() => setDetailFood(null)}
+          onReaction={handleReaction}
+        />
+      )}
     </main>
   );
 }

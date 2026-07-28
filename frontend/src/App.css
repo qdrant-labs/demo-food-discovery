@@ -577,6 +577,8 @@ button {
   border: 1px solid var(--border);
   border-radius: 18px;
   backdrop-filter: blur(20px);
+
+  cursor: pointer;
 }
 
 .food-card:hover {
@@ -660,6 +662,28 @@ button {
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Dish detail modal (opened by clicking a card) */
+.food-detail-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+
+  border-radius: 16px;
+}
+
+.food-detail-desc {
+  margin: 0;
+
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.food-detail .food-actions {
+  margin-top: 4px;
 }
 
 .flavor-row {
