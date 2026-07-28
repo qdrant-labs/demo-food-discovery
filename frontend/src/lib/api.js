@@ -33,6 +33,14 @@ export async function search({ positive = [], negative = [], queries = [], strat
   }));
 }
 
+// Sampled coverage points for the map preview: [{ lat, lon, count }].
+export async function sampleLocations() {
+  if (USE_MOCK) return { points: [], sampled: 0 };
+  const res = await fetch(`${API_BASE}/api/locations`);
+  if (!res.ok) throw new Error(`Locations failed (${res.status})`);
+  return res.json();
+}
+
 /* ------------------------------- dev mock -------------------------------- */
 
 const MOCK = [

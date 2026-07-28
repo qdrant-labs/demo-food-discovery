@@ -10,6 +10,7 @@ import EmptyState from "./components/EmptyState";
 import Footer from "./components/Footer";
 import HowItWorksModal from "./components/HowItWorksModal";
 import FoodDetailModal from "./components/FoodDetailModal";
+import LocationMap from "./components/LocationMap";
 
 import { search } from "./lib/api";
 
@@ -72,14 +73,22 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function selectCity(city) {
+  // A spot the user clicked on the map. Snap the name to the nearest covered
+  // city so the label reads sensibly ("near Berlin") instead of raw coordinates.
+  function pickLocation(lat, lon) {
+    const near = nearestCity(lat, lon);
     const loc = {
-      name: city.name,
-      latitude: city.lat,
-      longitude: city.lon,
+      name: near.city.name,
+      latitude: lat,
+      longitude: lon,
       radius_km: location?.radius_km || 25,
     };
     setLocation(loc);
+    setLocationNote(
+      near.km > 60
+        ? `Nearest covered area is ${near.city.name} (~${near.km} km away) — you may see few or no dishes here.`
+        : ""
+    );
     runSearch(likedItems, dislikedItems, query, newStrategy, loc);
   }
 
@@ -192,6 +201,10 @@ function App() {
   const likedIds = likedItems.map((f) => f.id);
   const dislikedIds = dislikedItems.map((f) => f.id);
   const tasteCount = likedItems.length + dislikedItems.length;
+  // A match score only means something when there's an actual request driving it
+  // (a text query or a like/dislike). The default/random browse grid has no query,
+  // so its scores are meaningless "1.000"s — hide the badge there.
+  const scored = Boolean(query.trim() || tasteCount > 0);
 
   return (
     <main className={`app ${theme}`}>
@@ -230,22 +243,9 @@ function App() {
               >
                 Anywhere
               </button>
-              <button
-                className={location?.name === "Near me" ? "active" : ""}
-                onClick={useMyLocation}
-                disabled={locating}
-              >
+              <button onClick={useMyLocation} disabled={locating}>
                 {locating ? "Locating…" : "📍 Near me"}
               </button>
-              {CITIES.map((c) => (
-                <button
-                  key={c.name}
-                  className={location?.name === c.name ? "active" : ""}
-                  onClick={() => selectCity(c)}
-                >
-                  {c.name}
-                </button>
-              ))}
             </div>
             {location && (
               <select
@@ -261,6 +261,13 @@ function App() {
               </select>
             )}
           </div>
+
+          <LocationMap location={location} onPick={pickLocation} theme={theme} />
+          <p className="map-hint">
+            {location
+              ? `Searching within ${location.radius_km} km of ${location.name}.`
+              : "Pink dots show where the dataset has dishes — click the map to search near a spot."}
+          </p>
 
           {locationNote && <p className="location-note">{locationNote}</p>}
 
@@ -301,6 +308,7 @@ function App() {
               dislikedIds={dislikedIds}
               onReaction={handleReaction}
               onOpenDetail={setDetailFood}
+              scored={scored}
             />
           </div>
         ) : loading ? (
@@ -319,6 +327,7 @@ function App() {
           food={detailFood}
           onClose={() => setDetailFood(null)}
           onReaction={handleReaction}
+          scored={scored}
         />
       )}
     </main>

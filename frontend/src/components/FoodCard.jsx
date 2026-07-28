@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function FoodCard({ food, onReaction, isLiked, isDisliked, onOpenDetail }) {
+function FoodCard({ food, onReaction, isLiked, isDisliked, onOpenDetail, scored }) {
   const rating = food.restaurant?.rating;
   const [imageOk, setImageOk] = useState(Boolean(food.image_url));
 
@@ -27,7 +27,7 @@ function FoodCard({ food, onReaction, isLiked, isDisliked, onOpenDetail }) {
         ) : (
           <span>🍽️</span>
         )}
-        {typeof food.score === "number" && (
+        {scored && typeof food.score === "number" && (
           <span className="food-score">Match {food.score.toFixed(3)}</span>
         )}
       </div>
