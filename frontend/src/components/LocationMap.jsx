@@ -4,13 +4,24 @@ import "leaflet/dist/leaflet.css";
 
 import { sampleLocations } from "../lib/api";
 
-// An actual map (Leaflet + OpenStreetMap) of where the dataset has dishes.
-// We sample the collection server-side and plot the coverage as dots, so the
-// preview is honest: you click a spot that actually has data. Uses circle
-// markers only (no image assets), so nothing breaks when Vite bundles it.
+// CARTO basemaps (CDN-backed, theme-matched). More reliable at a booth than the
+// public OSM tile servers, and there's a native dark variant so the map matches
+// the app's light/dark theme instead of a filtered hack.
+const TILES = {
+  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+};
+const TILE_ATTR =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+// An actual map (Leaflet) of where the dataset has dishes. We sample the
+// collection server-side and plot the coverage as dots, so the preview is
+// honest: you click a spot that actually has data. Uses circle markers only
+// (no image assets), so nothing breaks when Vite bundles it.
 function LocationMap({ location, onPick, theme }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const tileRef = useRef(null);
   const selectionRef = useRef(null); // { marker, circle }
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
@@ -25,9 +36,10 @@ function LocationMap({ location, onPick, theme }) {
     }).setView([50, 12], 4);
     mapRef.current = map;
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 18,
+    tileRef.current = L.tileLayer(theme === "dark" ? TILES.dark : TILES.light, {
+      attribution: TILE_ATTR,
+      subdomains: "abcd",
+      maxZoom: 19,
     }).addTo(map);
 
     map.on("click", (e) => onPickRef.current?.(e.latlng.lat, e.latlng.lng));
@@ -64,6 +76,13 @@ function LocationMap({ location, onPick, theme }) {
       mapRef.current = null;
     };
   }, []);
+
+  // Swap the basemap when the app theme changes.
+  useEffect(() => {
+    if (tileRef.current) {
+      tileRef.current.setUrl(theme === "dark" ? TILES.dark : TILES.light);
+    }
+  }, [theme]);
 
   // Reflect the selected location: a pin + its search radius.
   useEffect(() => {

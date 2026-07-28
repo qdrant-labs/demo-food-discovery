@@ -1383,10 +1383,6 @@ button {
   background: var(--surface);
   font: inherit;
 }
-/* Tone the base tiles down a touch in dark mode so the dots stay readable. */
-.location-map.dark .leaflet-tile-pane {
-  filter: brightness(0.72) contrast(1.05) saturate(0.85);
-}
 .map-hint {
   margin: 8px 0 0;
   color: var(--muted);
