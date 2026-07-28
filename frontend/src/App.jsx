@@ -15,14 +15,18 @@ import { search } from "./lib/api";
 
 const EXAMPLES = ["sushi", "pizza", "vegan salad", "burger", "ramen", "dessert"];
 
-// Cities that are dense in the Wolt dataset — proximity presets.
+// Cities present in the Wolt dataset, ordered west -> east (the western ones
+// are the closest to the US, so they lead and the "Near me" fallback favors them).
 const CITIES = [
-  { name: "Budapest", lat: 47.4979, lon: 19.0402 },
-  { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
-  { name: "Prague", lat: 50.0755, lon: 14.4378 },
-  { name: "Athens", lat: 37.9838, lon: 23.7275 },
+  { name: "Cologne", lat: 50.9375, lon: 6.9603 },
+  { name: "Hamburg", lat: 53.5511, lon: 9.9937 },
+  { name: "Oslo", lat: 59.9139, lon: 10.7522 },
   { name: "Berlin", lat: 52.52, lon: 13.405 },
+  { name: "Prague", lat: 50.0755, lon: 14.4378 },
+  { name: "Budapest", lat: 47.4979, lon: 19.0402 },
+  { name: "Athens", lat: 37.9838, lon: 23.7275 },
   { name: "Tel Aviv", lat: 32.0853, lon: 34.7818 },
+  { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
 ];
 const RADII = [10, 25, 50];
 
