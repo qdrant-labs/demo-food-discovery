@@ -1,5 +1,6 @@
 import itertools
 import logging
+import re
 from typing import List
 
 import numpy as np
@@ -12,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Over-fetch this many groups per requested result when filtering for English,
 # since English is a minority of the multilingual dataset.
-ENGLISH_OVERFETCH = 12
-MAX_OVERFETCH = 200
+ENGLISH_OVERFETCH = 16
+MAX_OVERFETCH = 256
 
 # Fast, dependency-free English heuristic: exclude Nordic characters and require
 # a common English word. Best-effort (there is no language field in the data).
@@ -23,6 +24,14 @@ _EN_WORDS = {
     "chicken", "cheese", "rice", "salad", "bowl", "fried", "grilled", "spicy",
     "sweet", "beef", "mix", "set", "pork", "fish", "egg", "soup", "roll",
 }
+
+
+def _dish_key(name):
+    """Normalized dish name for de-duplication: lowercased, menu numbers like
+    "31. " or "A32. " stripped, whitespace collapsed."""
+    n = (name or "").strip().lower()
+    n = re.sub(r"^[a-z]?\d+\s*[.\)]\s*", "", n)
+    return re.sub(r"\s+", " ", n)
 
 
 def _looks_english(name, desc):
@@ -100,13 +109,13 @@ class DiscoveryStrategy:
             # Fall back to unfiltered results if nothing matched (keeps the grid full).
             hits = english or hits
 
-        # Grouping by restaurant still lets chains show the same dish from each
-        # branch. De-duplicate by the visible identity (name + description).
+        # Grouping by restaurant still lets the same dish repeat (same product
+        # resold by many places / chain branches). De-duplicate by dish name so
+        # the grid shows distinct dishes.
         seen = set()
         deduped = []
         for h in hits:
-            p = h.payload or {}
-            key = ((p.get("name") or "").strip().lower(), (p.get("description") or "").strip().lower())
+            key = _dish_key((h.payload or {}).get("name"))
             if key in seen:
                 continue
             seen.add(key)
