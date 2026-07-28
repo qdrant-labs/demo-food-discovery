@@ -1313,6 +1313,54 @@ button {
 }
 .reset-button:hover { color: var(--accent); border-color: var(--accent); }
 
+/* Proximity: "near [city]" presets + radius */
+.location-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.location-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.location-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.location-chips button {
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.location-chips button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.location-chips button.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.radius-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 /* Removable liked / disliked chips (taste profile) */
 .taste-lists {
   margin-top: 16px;
