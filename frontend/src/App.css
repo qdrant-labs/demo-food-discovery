@@ -1360,6 +1360,12 @@ button {
   font-size: 12px;
   font-weight: 650;
 }
+.location-chips button:disabled { opacity: 0.6; cursor: default; }
+.location-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 
 /* Removable liked / disliked chips (taste profile) */
 .taste-lists {
