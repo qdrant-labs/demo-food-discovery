@@ -43,7 +43,7 @@ function FoodDetailModal({ food, onClose, onReaction }) {
 
           <div className="food-actions">
             <button className="dislike-button" onClick={() => react("dislike")}>
-              Skip
+              Dislike
             </button>
             <button className="like-button" onClick={() => react("like")}>
               Like

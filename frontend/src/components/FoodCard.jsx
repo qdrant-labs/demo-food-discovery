@@ -1,12 +1,14 @@
 import { useState } from "react";
 
-function FoodCard({ food, onReaction, onOpenDetail }) {
+function FoodCard({ food, onReaction, isLiked, isDisliked, onOpenDetail }) {
   const rating = food.restaurant?.rating;
   const [imageOk, setImageOk] = useState(Boolean(food.image_url));
 
+  const stateClass = isLiked ? "is-liked" : isDisliked ? "is-disliked" : "";
+
   return (
     <article
-      className="food-card"
+      className={`food-card ${stateClass}`}
       onClick={() => onOpenDetail?.(food)}
       role="button"
       tabIndex={0}
@@ -14,7 +16,7 @@ function FoodCard({ food, onReaction, onOpenDetail }) {
         if (e.key === "Enter" || e.key === " ") onOpenDetail?.(food);
       }}
     >
-      <div className="food-image">
+      <div className="food-photo">
         {imageOk ? (
           <img
             src={food.image_url}
@@ -24,6 +26,9 @@ function FoodCard({ food, onReaction, onOpenDetail }) {
           />
         ) : (
           <span>🍽️</span>
+        )}
+        {typeof food.score === "number" && (
+          <span className="food-score">Match {food.score.toFixed(3)}</span>
         )}
       </div>
 
@@ -36,18 +41,22 @@ function FoodCard({ food, onReaction, onOpenDetail }) {
         <h3>{food.name}</h3>
 
         <p>{food.description}</p>
-
-        {typeof food.score === "number" && (
-          <div className="score">Match {food.score.toFixed(3)}</div>
-        )}
       </div>
 
       <div className="food-actions" onClick={(e) => e.stopPropagation()}>
-        <button className="dislike-button" onClick={() => onReaction(food, "dislike")}>
-          Skip
+        <button
+          className="dislike-button"
+          aria-pressed={isDisliked}
+          onClick={() => onReaction(food, "dislike")}
+        >
+          {isDisliked ? "Disliked" : "Dislike"}
         </button>
-        <button className="like-button" onClick={() => onReaction(food, "like")}>
-          Like
+        <button
+          className="like-button"
+          aria-pressed={isLiked}
+          onClick={() => onReaction(food, "like")}
+        >
+          {isLiked ? "Liked" : "Like"}
         </button>
       </div>
     </article>
