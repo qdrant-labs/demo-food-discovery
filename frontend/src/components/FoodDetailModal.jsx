@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function FoodDetailModal({ food, onClose, onReaction }) {
+function FoodDetailModal({ food, onClose, onReaction, scored }) {
   const rating = food.restaurant?.rating;
   const [imageOk, setImageOk] = useState(Boolean(food.image_url));
 
@@ -37,7 +37,7 @@ function FoodDetailModal({ food, onClose, onReaction }) {
 
           <p className="food-detail-desc">{food.description}</p>
 
-          {typeof food.score === "number" && (
+          {scored && typeof food.score === "number" && (
             <div className="score">Match {food.score.toFixed(3)}</div>
           )}
 

@@ -1367,6 +1367,32 @@ button {
   font-size: 12px;
 }
 
+/* Coverage map (Leaflet) */
+.location-map {
+  margin-top: 12px;
+  height: 320px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  z-index: 0;
+}
+.location-map .leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: var(--surface);
+  font: inherit;
+}
+/* Tone the base tiles down a touch in dark mode so the dots stay readable. */
+.location-map.dark .leaflet-tile-pane {
+  filter: brightness(0.72) contrast(1.05) saturate(0.85);
+}
+.map-hint {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 /* Removable liked / disliked chips (taste profile) */
 .taste-lists {
   margin-top: 16px;

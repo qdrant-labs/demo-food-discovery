@@ -1,6 +1,6 @@
 import FoodCard from "./FoodCard";
 
-function DiscoveryGrid({ foods, likedIds, dislikedIds, onReaction, onOpenDetail }) {
+function DiscoveryGrid({ foods, likedIds, dislikedIds, onReaction, onOpenDetail, scored }) {
   return (
     <section className="discovery-section">
       <div className="results-header">
@@ -24,6 +24,7 @@ function DiscoveryGrid({ foods, likedIds, dislikedIds, onReaction, onOpenDetail 
             isDisliked={dislikedIds.includes(food.id)}
             onReaction={onReaction}
             onOpenDetail={onOpenDetail}
+            scored={scored}
           />
         ))}
       </div>
