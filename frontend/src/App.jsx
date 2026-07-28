@@ -105,18 +105,27 @@ function App() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocating(false);
+        // Snap straight to the closest covered area (the dataset has no US data),
+        // so the user always gets results instead of an empty "near me".
+        const near = nearestCity(pos.coords.latitude, pos.coords.longitude);
+        const c = near.city;
         const loc = {
-          name: "Near me",
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
+          name: c.name,
+          latitude: c.lat,
+          longitude: c.lon,
           radius_km: location?.radius_km || 25,
         };
         setLocation(loc);
+        setLocationNote(
+          near.km > 150
+            ? `${c.name} is the closest covered area to you (~${near.km} km away).`
+            : ""
+        );
         runSearch(likedItems, dislikedItems, query, newStrategy, loc);
       },
       () => {
         setLocating(false);
-        setLocationNote("Couldn't get your location — allow access or pick a city.");
+        setLocationNote("Couldn't get your location — pick a city.");
       },
       { timeout: 8000, maximumAge: 60000 }
     );
@@ -296,33 +305,6 @@ function App() {
           </div>
         ) : loading ? (
           <LoadingState />
-        ) : hasSearched && location ? (
-          (() => {
-            const near = nearestCity(location.latitude, location.longitude);
-            return (
-              <div className="empty-state">
-                <div className="empty-state-header">
-                  <span>
-                    {location.name === "Near me"
-                      ? "No dishes near you"
-                      : `No dishes near ${location.name}`}
-                  </span>
-                  <h3>Nothing within {location.radius_km} km</h3>
-                  <p>
-                    This demo's Wolt dataset only covers a handful of cities.
-                    {near.city
-                      ? ` The closest to you is ${near.city.name} (~${near.km} km away).`
-                      : ""}
-                  </p>
-                </div>
-                {near.city && (
-                  <button className="compare-button" onClick={() => selectCity(near.city)}>
-                    Show {near.city.name} instead
-                  </button>
-                )}
-              </div>
-            );
-          })()
         ) : (
           hasSearched && <EmptyState tasteCount={tasteCount} onReset={reset} />
         )}
