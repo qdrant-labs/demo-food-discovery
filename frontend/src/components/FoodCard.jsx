@@ -1,11 +1,19 @@
 import { useState } from "react";
 
-function FoodCard({ food, onReaction }) {
+function FoodCard({ food, onReaction, onOpenDetail }) {
   const rating = food.restaurant?.rating;
   const [imageOk, setImageOk] = useState(Boolean(food.image_url));
 
   return (
-    <article className="food-card">
+    <article
+      className="food-card"
+      onClick={() => onOpenDetail?.(food)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpenDetail?.(food);
+      }}
+    >
       <div className="food-image">
         {imageOk ? (
           <img
@@ -34,7 +42,7 @@ function FoodCard({ food, onReaction }) {
         )}
       </div>
 
-      <div className="food-actions">
+      <div className="food-actions" onClick={(e) => e.stopPropagation()}>
         <button className="dislike-button" onClick={() => onReaction(food, "dislike")}>
           Skip
         </button>
