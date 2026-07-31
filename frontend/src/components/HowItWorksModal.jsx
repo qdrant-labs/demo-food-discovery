@@ -50,7 +50,7 @@ function HowItWorksModal({ onClose }) {
               <strong>Vector search</strong>
 
               <p>
-                Cosine similarity finds the closest foods — the same math a
+                Cosine similarity finds the closest foods, the same math a
                 Qdrant collection uses.
               </p>
             </div>

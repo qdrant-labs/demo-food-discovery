@@ -86,7 +86,7 @@ function App() {
     setLocation(loc);
     setLocationNote(
       near.km > 60
-        ? `Nearest covered area is ${near.city.name} (~${near.km} km away) — you may see few or no dishes here.`
+        ? `Nearest covered area is ${near.city.name} (~${near.km} km away). You may see few or no dishes here.`
         : ""
     );
     runSearch(likedItems, dislikedItems, query, newStrategy, loc);
@@ -134,7 +134,7 @@ function App() {
       },
       () => {
         setLocating(false);
-        setLocationNote("Couldn't get your location — pick a city.");
+        setLocationNote("Couldn't get your location. Pick a city.");
       },
       { timeout: 8000, maximumAge: 60000 }
     );
@@ -221,7 +221,7 @@ function App() {
           <h1>Food Discovery</h1>
 
           <p>
-            Search by craving, then like or dislike dishes — Qdrant's Discovery
+            Search by craving, then like or dislike dishes. Qdrant's Discovery
             API refines recommendations from your taste in real time.
           </p>
 
@@ -266,7 +266,7 @@ function App() {
           <p className="map-hint">
             {location
               ? `Searching within ${location.radius_km} km of ${location.name}.`
-              : "Pink dots show where the dataset has dishes — click the map to search near a spot."}
+              : "Pink dots show where the dataset has dishes. Click the map to search near a spot."}
           </p>
 
           {locationNote && <p className="location-note">{locationNote}</p>}

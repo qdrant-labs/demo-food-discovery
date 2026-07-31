@@ -129,7 +129,7 @@ function LocationMap({ location, onPick, theme }) {
       className={`location-map ${theme}`}
       ref={containerRef}
       role="application"
-      aria-label="Map of where dishes are available — click to search near a spot"
+      aria-label="Map of where dishes are available. Click to search near a spot"
     />
   );
 }
