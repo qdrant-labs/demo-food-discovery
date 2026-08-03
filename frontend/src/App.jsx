@@ -262,11 +262,16 @@ function App() {
             )}
           </div>
 
-          <LocationMap location={location} onPick={pickLocation} theme={theme} />
+          <LocationMap
+            location={location}
+            onPick={pickLocation}
+            theme={theme}
+            results={foods}
+          />
           <p className="map-hint">
             {location
-              ? `Searching within ${location.radius_km} km of ${location.name}.`
-              : "Pink dots show where the dataset has dishes. Click the map to search near a spot."}
+              ? `Searching within ${location.radius_km} km of ${location.name}. Amber points are your results.`
+              : "Amber points are your current results; pink dots show the wider dataset. Click the map to search near a spot."}
           </p>
 
           {locationNote && <p className="location-note">{locationNote}</p>}

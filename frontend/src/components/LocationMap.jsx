@@ -18,17 +18,19 @@ const TILE_ATTR =
 // collection server-side and plot the coverage as dots, so the preview is
 // honest: you click a spot that actually has data. Uses circle markers only
 // (no image assets), so nothing breaks when Vite bundles it.
-function LocationMap({ location, onPick, theme }) {
+function LocationMap({ location, onPick, theme, results }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const tileRef = useRef(null);
   const selectionRef = useRef(null); // { marker, circle }
+  const resultsRef = useRef(null); // layer of markers for the current results
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
 
   // Init the map once.
   useEffect(() => {
     if (mapRef.current || !containerRef.current) return;
+    let cancelled = false;
 
     const map = L.map(containerRef.current, {
       worldCopyJump: true,
@@ -50,7 +52,7 @@ function LocationMap({ location, onPick, theme }) {
     // Load and plot the coverage dots.
     sampleLocations()
       .then(({ points = [] }) => {
-        if (!mapRef.current || !points.length) return;
+        if (cancelled || mapRef.current !== map || !points.length) return;
         const layer = L.layerGroup();
         const latlngs = [];
         for (const p of points) {
@@ -72,6 +74,7 @@ function LocationMap({ location, onPick, theme }) {
       .catch((err) => console.error("coverage sample failed", err));
 
     return () => {
+      cancelled = true;
       map.remove();
       mapRef.current = null;
     };
@@ -83,6 +86,45 @@ function LocationMap({ location, onPick, theme }) {
       tileRef.current.setUrl(theme === "dark" ? TILES.dark : TILES.light);
     }
   }, [theme]);
+
+  // Plot the current search results so the map visibly reacts to each search.
+  // Amber markers (distinct from the pink coverage dots and the blue pin).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (resultsRef.current) {
+      map.removeLayer(resultsRef.current);
+      resultsRef.current = null;
+    }
+
+    const layer = L.layerGroup();
+    const latlngs = [];
+    for (const r of results || []) {
+      const loc = r.restaurant && r.restaurant.location;
+      const lat = loc && loc.latitude;
+      const lon = loc && loc.longitude;
+      if (typeof lat !== "number" || typeof lon !== "number") continue;
+      latlngs.push([lat, lon]);
+      L.circleMarker([lat, lon], {
+        radius: 6,
+        color: "#ffffff",
+        weight: 1.5,
+        fillColor: "#f59e0b",
+        fillOpacity: 0.95,
+      })
+        .bindTooltip(r.restaurant.name ? `${r.name} · ${r.restaurant.name}` : r.name)
+        .addTo(layer);
+    }
+    if (!latlngs.length) return;
+    layer.addTo(map);
+    resultsRef.current = layer;
+
+    // Pan/zoom to the results, unless a location pin already controls the view.
+    if (!location) {
+      map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 11 });
+    }
+  }, [results, location]);
 
   // Reflect the selected location: a pin + its search radius.
   useEffect(() => {
