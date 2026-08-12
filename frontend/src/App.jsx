@@ -221,8 +221,9 @@ function App() {
           <h1>Food Discovery</h1>
 
           <p>
-            Search by craving, then like or dislike dishes. Qdrant's Discovery
-            API refines recommendations from your taste in real time.
+            Search by craving, then like or dislike dishes. Qdrant's
+            Recommendation API refines results from your likes and dislikes in
+            real time.
           </p>
 
           <SearchBar

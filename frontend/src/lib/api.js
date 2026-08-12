@@ -1,5 +1,5 @@
 // Talks to the original food-discovery backend (POST /api/search), which runs
-// the Qdrant Discovery API server-side. Same contract as qdrant/demo-food-
+// the Qdrant Recommendation API server-side. Same contract as qdrant/demo-food-
 // discovery: positive/negative example ids, optional text queries + location,
 // and a strategy ("best_score" | "average_vector").
 //
