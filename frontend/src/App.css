@@ -1383,6 +1383,11 @@ button {
   background: var(--surface);
   font: inherit;
 }
+/* OpenStreetMap ships no dark basemap, so dark mode inverts the tiles. Only the
+   tile pane is touched, which leaves the markers and the attribution alone. */
+.location-map.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
 .map-hint {
   margin: 8px 0 0;
   color: var(--muted);
