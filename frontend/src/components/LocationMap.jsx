@@ -4,15 +4,17 @@ import "leaflet/dist/leaflet.css";
 
 import { sampleLocations } from "../lib/api";
 
-// CARTO basemaps (CDN-backed, theme-matched). More reliable at a booth than the
-// public OSM tile servers, and there's a native dark variant so the map matches
-// the app's light/dark theme instead of a filtered hack.
-const TILES = {
-  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-};
+// OpenStreetMap standard tiles. These were CARTO's light_all and dark_all, which
+// were free and are not any more: every tile now comes back as a 2KB
+// "API KEY REQUIRED" watermark instead of a map. A key would also be a third
+// vendor, which is the thing this demo just finished removing.
+//
+// OSM has no dark variant, so dark mode inverts the tile pane in CSS. That is
+// the filtered hack the CARTO version existed to avoid, and it is the price of
+// not needing a key.
+const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 // An actual map (Leaflet) of where the dataset has dishes. We sample the
 // collection server-side and plot the coverage as dots, so the preview is
@@ -38,9 +40,8 @@ function LocationMap({ location, onPick, theme, results }) {
     }).setView([50, 12], 4);
     mapRef.current = map;
 
-    tileRef.current = L.tileLayer(theme === "dark" ? TILES.dark : TILES.light, {
+    tileRef.current = L.tileLayer(TILE_URL, {
       attribution: TILE_ATTR,
-      subdomains: "abcd",
       maxZoom: 19,
     }).addTo(map);
 
@@ -79,13 +80,6 @@ function LocationMap({ location, onPick, theme, results }) {
       mapRef.current = null;
     };
   }, []);
-
-  // Swap the basemap when the app theme changes.
-  useEffect(() => {
-    if (tileRef.current) {
-      tileRef.current.setUrl(theme === "dark" ? TILES.dark : TILES.light);
-    }
-  }, [theme]);
 
   // Plot the current search results so the map visibly reacts to each search.
   // Amber markers (distinct from the pink coverage dots and the blue pin).
